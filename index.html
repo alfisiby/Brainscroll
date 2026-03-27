@@ -873,6 +873,116 @@ html, body {
   .dim-bar-row { grid-template-columns: 90px 1fr 38px; }
   .dim-bar-label { font-size: 0.55rem; }
 }
+
+/* ═══════════════ CATEGORY PICKER ═══════════════ */
+#screen-category { background: var(--bg); }
+
+.cat-pick-header {
+  text-align: center;
+  padding: 22px 16px 8px;
+}
+.cat-pick-mascot { font-size: 2.4rem; margin-bottom: 6px; animation: mascotBounce 2s ease-in-out infinite; }
+.cat-pick-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  letter-spacing: 3px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.cat-pick-sub {
+  font-weight: 700;
+  font-size: 0.73rem;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 14px 0 8px;
+}
+.cat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 18px 10px 16px;
+  background: var(--surface);
+  border: 2.5px solid var(--border-dark);
+  border-radius: 16px;
+  box-shadow: 0 4px 0 var(--border-dark);
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.1s, background 0.12s;
+  text-align: center;
+  position: relative;
+}
+.cat-card:hover { border-color: var(--blue); box-shadow: 0 4px 0 var(--blue-dark); }
+.cat-card:active { transform: translateY(4px); box-shadow: none; }
+.cat-card.selected {
+  border-color: var(--green);
+  box-shadow: 0 4px 0 var(--green-dark);
+  background: var(--green-light);
+}
+.cat-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  right: 9px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: var(--green-dark);
+}
+.cat-card-emoji { font-size: 2rem; line-height: 1; }
+.cat-card-name {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 0.73rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.cat-confirm-btn-wrap { padding: 8px 0 20px; }
+
+/* change-topic strip on result screen */
+.change-topic-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  margin-top: 8px;
+  background: var(--purple-light);
+  border: 2px solid var(--purple);
+  border-radius: 14px;
+}
+.change-topic-label {
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: var(--purple-dark);
+}
+.btn-change-topic {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: white;
+  background: var(--purple);
+  border: none;
+  border-radius: 10px;
+  padding: 7px 14px;
+  box-shadow: 0 3px 0 var(--purple-dark);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-change-topic:hover { background: #d999ff; }
+.btn-change-topic:active { transform: translateY(3px); box-shadow: none; }
 </style>
 </head>
 <body>
@@ -1037,6 +1147,10 @@ html, body {
         <button class="btn-secondary" onclick="triggerShare()">📤 Share</button>
       </div>
     </div>
+    <div class="change-topic-strip">
+      <span class="change-topic-label">🔀 Want to change topic?</span>
+      <button class="btn-change-topic" onclick="changeTopic()">Change</button>
+    </div>
   </div>
 </div>
 
@@ -1103,6 +1217,36 @@ html, body {
   </div>
 </div>
 
+<!-- ═══════════════ CATEGORY PICKER ═══════════════ -->
+<div id="screen-category" class="screen">
+  <div class="top-bar">
+    <div class="tb-logo">🧠 BrainScroll</div>
+    <div class="tb-stats">
+      <div class="tb-pill tb-pill-blue">
+        <span class="tb-pill-icon">🔁</span>
+        <span id="cp-rounds">0</span>
+      </div>
+      <div class="tb-pill tb-pill-yellow">
+        <span class="tb-pill-icon">⭐</span>
+        <span id="cp-score">0</span>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-area">
+    <div class="cat-pick-header">
+      <div class="cat-pick-mascot">🎯</div>
+      <div class="cat-pick-title">PICK A TOPIC</div>
+      <div class="cat-pick-sub">Articles will match your chosen category</div>
+    </div>
+    <div class="category-grid" id="category-grid"></div>
+    <div class="cat-confirm-btn-wrap">
+      <button class="btn-primary" id="cat-confirm-btn" onclick="confirmCategory()" disabled>
+        ✅ Start Learning
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════ CONFETTI LAYER ═══════════════ -->
 <div class="confetti-wrap" id="confetti-wrap"></div>
 
@@ -1129,9 +1273,10 @@ html, body {
 const STORAGE_KEY = 'brainscroll_state';
 
 let state = {
-  rounds:        0,
-  totalScore:    0,
-  userName:      null,
+  rounds:           0,
+  totalScore:       0,
+  userName:         null,
+  selectedCategory: null,   // null = not chosen yet
   dims: {
     recall:      [],
     speed:       [],
@@ -1154,6 +1299,7 @@ function loadState() {
       if (!state.dims) state.dims = { recall:[], speed:[], accuracy:[], breadth:0, consistency:[], focus:[] };
       if (!state.categorySeen) state.categorySeen = {};
       if (!state.allRoundScores) state.allRoundScores = [];
+      if (state.selectedCategory === undefined) state.selectedCategory = null;
     }
   } catch(e) {}
 }
@@ -1210,23 +1356,106 @@ function detectCategory(title, text) {
 }
 
 // ─────────────────────────────────────────
+// CATEGORY PICKER DATA
+// ─────────────────────────────────────────
+const CATEGORY_LIST = [
+  { name: 'History',     emoji: '🏛️', keyword: 'history ancient civilization empire' },
+  { name: 'Chemistry',   emoji: '🧪', keyword: 'chemistry chemical element compound' },
+  { name: 'Biology',     emoji: '🌿', keyword: 'biology organism species evolution' },
+  { name: 'Astronomy',   emoji: '🔭', keyword: 'astronomy space planet galaxy star' },
+  { name: 'Mathematics', emoji: '➗', keyword: 'mathematics theorem algebra geometry' },
+  { name: 'Technology',  emoji: '💻', keyword: 'technology computer software engineering' },
+  { name: 'Geography',   emoji: '🌍', keyword: 'geography country mountain river capital' },
+  { name: 'Economics',   emoji: '💰', keyword: 'economics market trade finance currency' },
+  { name: 'Literature',  emoji: '📖', keyword: 'literature novel author poetry writing' },
+  { name: 'Art',         emoji: '🎨', keyword: 'art painting sculpture artist museum' },
+  { name: 'Physics',     emoji: '⚛️', keyword: 'physics quantum mechanics force energy' },
+  { name: 'Surprise Me', emoji: '🎲', keyword: null }
+];
+
+let _pendingCategory = null;  // category selected in picker but not yet confirmed
+
+function buildCategoryGrid() {
+  const grid = document.getElementById('category-grid');
+  grid.innerHTML = '';
+  CATEGORY_LIST.forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'cat-card' + (state.selectedCategory === cat.name ? ' selected' : '');
+    card.dataset.name = cat.name;
+    card.innerHTML = `<div class="cat-card-emoji">${cat.emoji}</div><div class="cat-card-name">${cat.name}</div>`;
+    card.addEventListener('click', () => pickCategoryCard(cat.name));
+    grid.appendChild(card);
+  });
+}
+
+function pickCategoryCard(name) {
+  _pendingCategory = name;
+  document.querySelectorAll('.cat-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.name === name);
+  });
+  document.getElementById('cat-confirm-btn').disabled = false;
+}
+
+function showCategoryPicker(fromResult = false) {
+  _pendingCategory = state.selectedCategory;  // pre-select current if any
+  document.getElementById('cp-rounds').textContent = state.rounds;
+  document.getElementById('cp-score').textContent  = state.totalScore;
+  buildCategoryGrid();
+  // If already has a category, allow confirming immediately
+  document.getElementById('cat-confirm-btn').disabled = !state.selectedCategory;
+  showScreen('category');
+}
+
+function confirmCategory() {
+  if (!_pendingCategory) return;
+  state.selectedCategory = _pendingCategory;
+  saveState();
+  startReading();
+}
+
+function changeTopic() {
+  showCategoryPicker(true);
+}
+
+// ─────────────────────────────────────────
 // WIKIPEDIA API
 // ─────────────────────────────────────────
+async function fetchRandomArticle() {
+  const r1 = await fetch('https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*');
+  const d1 = await r1.json();
+  const { id, title } = d1.query.random[0];
+  const r2 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&pageids=${id}&prop=extracts&exintro=true&explaintext=true&format=json&origin=*`);
+  const d2 = await r2.json();
+  const extract = (d2.query.pages[id] || {}).extract || '';
+  return { title, extract };
+}
+
+async function fetchCategoryArticle(keyword) {
+  const r1 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(keyword)}&srnamespace=0&srlimit=12&format=json&origin=*`);
+  const d1 = await r1.json();
+  const results = (d1.query || {}).search || [];
+  if (!results.length) return null;
+  // Pick a random result from the pool
+  const pick = results[Math.floor(Math.random() * results.length)];
+  const r2 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&pageids=${pick.pageid}&prop=extracts&exintro=true&explaintext=true&format=json&origin=*`);
+  const d2 = await r2.json();
+  const extract = (d2.query.pages[pick.pageid] || {}).extract || '';
+  return { title: pick.title, extract };
+}
+
 async function fetchArticle() {
+  const catEntry = CATEGORY_LIST.find(c => c.name === state.selectedCategory);
+  const useRandom = !catEntry || catEntry.keyword === null;
+
   for (let i = 0; i < 5; i++) {
     try {
-      const r1 = await fetch('https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*');
-      const d1 = await r1.json();
-      const { id, title } = d1.query.random[0];
-
-      const r2 = await fetch(`https://en.wikipedia.org/w/api.php?action=query&pageids=${id}&prop=extracts&exintro=true&explaintext=true&format=json&origin=*`);
-      const d2 = await r2.json();
-      const extract = (d2.query.pages[id] || {}).extract || '';
-
-      if (extract.length < 400) continue;
-      if (/may refer to|disambiguation/i.test(extract)) continue;
-
-      return { title, extract };
+      const art = useRandom
+        ? await fetchRandomArticle()
+        : await fetchCategoryArticle(catEntry.keyword);
+      if (!art) continue;
+      if (art.extract.length < 400) continue;
+      if (/may refer to|disambiguation/i.test(art.extract)) continue;
+      return art;
     } catch(e) { /* retry */ }
   }
   return null;
@@ -1616,7 +1845,11 @@ function launchBoo() {
 // ─────────────────────────────────────────
 function startGame() {
   loadState();
-  startReading();
+  if (!state.selectedCategory) {
+    showCategoryPicker();
+  } else {
+    startReading();
+  }
 }
 
 async function startReading() {
