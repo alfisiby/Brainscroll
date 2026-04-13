@@ -323,7 +323,7 @@ body {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  padding-left: 16px;
+  padding-left: 12px;
   border-left: 1px solid var(--border);
   margin-left: 8px;
 }
@@ -331,32 +331,43 @@ body {
 .btn-share-board {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   border-radius: 7px;
   border: 1px solid var(--border2);
   background: transparent;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
 }
 .btn-share-board:hover { color: var(--text); border-color: var(--border2); }
 
-.btn-new-brief {
-  padding: 6px 13px;
-  border-radius: 7px;
+/* ── Floating Action Button ── */
+.fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   border: none;
   background: var(--accent);
-  color: var(--accent-dark);
-  font-size: 11px;
-  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: opacity 0.15s;
-  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(79,70,229,0.35);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  z-index: 90;
 }
-.btn-new-brief:hover { opacity: 0.88; }
+.fab:hover {
+  transform: scale(1.07);
+  box-shadow: 0 6px 22px rgba(79,70,229,0.45);
+}
+.fab:active { transform: scale(0.96); }
 
 /* ── Row 4: Content Area ── */
 #content-area {
@@ -1060,14 +1071,10 @@ body {
 
   /* ── Section Row ── */
   #section-row { padding: 0 0 0 14px; }
-  .section-actions {
-    padding-left: 10px;
-    margin-left: 0;
-    border-left-color: var(--border);
-  }
-  /* Icon-only share button on mobile */
-  .share-text { display: none; }
-  .btn-share-board { padding: 5px 8px; }
+  .section-actions { padding-left: 10px; margin-left: 0; }
+
+  /* ── FAB: slightly smaller on mobile ── */
+  .fab { bottom: 20px; right: 18px; width: 48px; height: 48px; border-radius: 14px; }
 
   /* ── Content area ── */
   #content-area { padding: 12px 14px 20px; }
@@ -1137,7 +1144,6 @@ body {
 
 @media (max-width: 400px) {
   .product-btn { padding: 4px 9px; font-size: 11px; }
-  .btn-new-brief { padding: 6px 10px; font-size: 11px; }
   .section-tab { padding: 0 10px; font-size: 11px; }
   .topbar-logo { font-size: 10px; }
 }
