@@ -290,17 +290,19 @@ body {
 .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 .section-delete-btn {
-  display: none;
+  display: inline-block;
   margin-left: 5px;
   color: var(--muted2);
   font-size: 14px;
   line-height: 1;
   padding: 0 2px;
   border-radius: 3px;
-  transition: color 0.12s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s, color 0.12s;
   vertical-align: middle;
 }
-.section-tab:hover .section-delete-btn { display: inline; }
+.section-tab:hover .section-delete-btn { opacity: 1; pointer-events: auto; }
 .section-delete-btn:hover { color: var(--red); }
 
 .btn-add-section {
