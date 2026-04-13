@@ -97,6 +97,10 @@ export async function updateSectionToken(sectionId, token) {
   await updateDoc(doc(db, 'sections', sectionId), { shareToken: token });
 }
 
+export async function deleteSectionDoc(sectionId) {
+  await deleteDoc(doc(db, 'sections', sectionId));
+}
+
 // ============================================================
 // CARDS  — /cards/{cardId}
 // ============================================================

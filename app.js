@@ -7,7 +7,7 @@
 import {
   fbSignIn, fbSignOut, onAuthChange,
   loadProducts, saveProduct,
-  loadSections, saveSection, updateSectionToken,
+  loadSections, saveSection, updateSectionToken, deleteSectionDoc,
   loadCards,    saveCard,    updateCardFields, deleteCardDoc, updateCardToken, getCardDoc, loadBoardCards,
   createShareLink, getShareLink,
 } from './firebase.js';
@@ -237,7 +237,10 @@ function renderSectionRow() {
   const active   = state.activeSectionFilter;
   const allTab   = `<button class="section-tab${active === 'All' ? ' active' : ''}" onclick="switchSection('All')">All</button>`;
   const secTabs  = sections.map(s =>
-    `<button class="section-tab${active === s.name ? ' active' : ''}" onclick="switchSection('${esc(s.name)}')">${esc(s.name)}</button>`
+    `<button class="section-tab${active === s.name ? ' active' : ''}" onclick="switchSection('${esc(s.name)}')">
+      ${esc(s.name)}
+      <span class="section-delete-btn" onclick="openDeleteSectionModal(event,'${esc(s.name)}')" title="Delete section">×</span>
+    </button>`
   ).join('');
   const addBtn   = `<button class="btn-add-section" onclick="handleAddSection()">+ Section</button>`;
   document.getElementById('section-tabs').innerHTML = allTab + secTabs + addBtn;
@@ -590,6 +593,47 @@ function handleAddSection() {
   showToast(`${trimmed} section added`);
 }
 
+// ── Delete Section ──
+let _deletingSectionName = null;
+
+function openDeleteSectionModal(e, sectionName) {
+  e.stopPropagation();
+  _deletingSectionName = sectionName;
+  document.getElementById('delete-section-label').textContent = sectionName;
+  document.getElementById('delete-section-confirm').value = '';
+  document.getElementById('delete-section-confirm').placeholder = sectionName;
+  document.getElementById('delete-section-btn').disabled = true;
+  showModal('delete-section-modal');
+  setTimeout(() => document.getElementById('delete-section-confirm').focus(), 80);
+}
+
+function checkDeleteConfirm() {
+  const val = document.getElementById('delete-section-confirm').value;
+  document.getElementById('delete-section-btn').disabled = val !== _deletingSectionName;
+}
+
+async function confirmDeleteSection() {
+  const name = _deletingSectionName;
+  if (!name) return;
+
+  const sections  = state.sections[state.activeProductId] || [];
+  const section   = sections.find(s => s.name === name);
+  const toDelete  = state.cards.filter(c => c.productId === state.activeProductId && c.section === name);
+
+  // Update local state immediately
+  state.sections[state.activeProductId] = sections.filter(s => s.name !== name);
+  state.cards = state.cards.filter(c => !(c.productId === state.activeProductId && c.section === name));
+  if (state.activeSectionFilter === name) state.activeSectionFilter = 'All';
+
+  closeModal();
+  renderAll();
+  showToast(`${name} section deleted`);
+
+  // Firestore writes (fire and forget)
+  if (section) deleteSectionDoc(section.id).catch(console.error);
+  toDelete.forEach(c => deleteCardDoc(c.id).catch(console.error));
+}
+
 async function addProduct() {
   const name = document.getElementById('product-name-input').value.trim();
   if (!name) return;
@@ -775,6 +819,7 @@ Object.assign(window, {
   saveBrief, deleteCard, cycleStatus,
   switchProduct, switchSection, handleAddSection, addProduct,
   copyCardLink, shareBoardLink, showToast,
+  openDeleteSectionModal, checkDeleteConfirm, confirmDeleteSection,
 });
 
 // ============================================================

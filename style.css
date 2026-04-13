@@ -289,6 +289,20 @@ body {
 .section-tab:hover { color: var(--text); }
 .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+.section-delete-btn {
+  display: none;
+  margin-left: 5px;
+  color: var(--muted2);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+  transition: color 0.12s;
+  vertical-align: middle;
+}
+.section-tab:hover .section-delete-btn { display: inline; }
+.section-delete-btn:hover { color: var(--red); }
+
 .btn-add-section {
   padding: 0 14px;
   height: 42px;
@@ -653,6 +667,20 @@ body {
 }
 .btn-secondary:hover { color: var(--text); }
 
+.btn-danger {
+  padding: 9px 16px;
+  background: var(--red);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-danger:hover { opacity: 0.88; }
+.btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .btn-full { width: 100%; }
 
 /* ============================================================
@@ -733,6 +761,17 @@ body {
   gap: 8px;
   flex-shrink: 0;
 }
+
+.delete-warning {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: var(--red-dim);
+  border: 1px solid rgba(220,38,38,0.15);
+  border-radius: 8px;
+}
+.delete-warning strong { color: var(--red); }
 
 /* ── View Modal ── */
 .view-modal {
@@ -984,4 +1023,119 @@ body {
   background: var(--bg);
   color: var(--muted);
   font-size: 14px;
+}
+
+/* ============================================================
+   RESPONSIVE — TABLET  (≤ 860px)
+   Already handled: card-grid and viewer-grid → 2 columns
+   ============================================================ */
+
+@media (max-width: 860px) {
+  #content-area { padding: 14px 16px 20px; }
+  #topbar       { padding: 0 16px; }
+  #app-row      { padding: 7px 16px; }
+  #section-row  { padding: 0 16px; }
+  #board-viewer { padding: 24px 16px 32px; }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE  (≤ 600px)
+   ============================================================ */
+
+@media (max-width: 600px) {
+
+  /* ── Card grid: single column ── */
+  #card-grid   { grid-template-columns: 1fr; gap: 10px; }
+  .viewer-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  /* ── Topbar ── */
+  #topbar { padding: 0 14px; }
+  #owner-name-label { display: none; }
+  .user-chip { padding: 4px; gap: 0; }
+
+  /* ── App Row ── */
+  #app-row { padding: 7px 14px; }
+
+  /* ── Section Row ── */
+  #section-row { padding: 0 0 0 14px; }
+  .section-actions {
+    padding-left: 10px;
+    margin-left: 0;
+    border-left-color: var(--border);
+  }
+  /* Icon-only share button on mobile */
+  .share-text { display: none; }
+  .btn-share-board { padding: 5px 8px; }
+
+  /* ── Content area ── */
+  #content-area { padding: 12px 14px 20px; }
+
+  /* ── Modals: bottom sheet ── */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal, .modal-sm {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+  }
+  .view-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  /* ── Modal bottom sheet drag handle ── */
+  .modal::before, .view-modal::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+
+  /* ── Form grid: stack vertically ── */
+  .form-grid-3 { grid-template-columns: 1fr; }
+
+  /* ── Board viewer ── */
+  #board-viewer { padding: 20px 14px 28px; }
+  .viewer-header { font-size: 15px; }
+
+  /* ── Card viewer page ── */
+  #card-viewer-page { padding: 20px 14px; align-items: flex-start; }
+  #card-viewer-inner .view-modal {
+    border-radius: 12px;
+    max-height: none;
+  }
+
+  /* ── Cards: tighten padding slightly ── */
+  .card { padding: 13px; }
+
+  /* ── Login card ── */
+  .login-card { padding: 24px 20px; border-radius: 16px; }
+
+  /* ── Toast: full width at bottom ── */
+  .toast {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    max-width: none;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE — SMALL PHONE  (≤ 400px)
+   ============================================================ */
+
+@media (max-width: 400px) {
+  .product-btn { padding: 4px 9px; font-size: 11px; }
+  .btn-new-brief { padding: 6px 10px; font-size: 11px; }
+  .section-tab { padding: 0 10px; font-size: 11px; }
+  .topbar-logo { font-size: 10px; }
 }

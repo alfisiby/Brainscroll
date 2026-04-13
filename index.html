@@ -65,7 +65,7 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
           </svg>
-          Share Board
+          <span class="share-text">Share Board</span>
         </button>
         <button class="btn-new-brief" onclick="openNewBriefModal()">+ New Brief</button>
       </div>
@@ -153,6 +153,29 @@
       <div class="view-meta" id="view-meta"></div>
       <div class="view-body" id="view-body"></div>
       <div class="view-attachments" id="view-attachments"></div>
+    </div>
+
+    <!-- Delete Section Confirmation Modal -->
+    <div id="delete-section-modal" class="modal modal-sm hidden">
+      <div class="modal-header">
+        <h2 class="modal-title">Delete Section</h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="delete-warning">
+          This will permanently delete the <strong id="delete-section-label"></strong> section
+          and <strong>all briefs inside it</strong>. This cannot be undone.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Type the section name to confirm</label>
+          <input type="text" id="delete-section-confirm" class="form-input"
+            oninput="checkDeleteConfirm()" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn-danger" id="delete-section-btn" onclick="confirmDeleteSection()" disabled>Delete Section</button>
+      </div>
     </div>
 
     <!-- Add Product Modal -->
