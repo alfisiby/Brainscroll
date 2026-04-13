@@ -11,15 +11,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Only the authenticated owner can read/write products, sections, and cards
+    // Only the authenticated owner can read/write products and sections
     match /products/{id} {
       allow read, write: if request.auth != null;
     }
     match /sections/{id} {
       allow read, write: if request.auth != null;
     }
+
+    // Cards: anyone can READ (share link viewers need this — no auth)
+    // Only the authenticated owner can write
     match /cards/{id} {
-      allow read, write: if request.auth != null;
+      allow read:  if true;
+      allow write: if request.auth != null;
     }
 
     // Share links: anyone can READ (needed for viewers with the link)

@@ -12,7 +12,7 @@ import { initializeApp }
   from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp }
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where }
   from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 // ── Config (safe to expose — security comes from Firestore rules) ──
@@ -157,12 +157,13 @@ export async function getCardDoc(cardId) {
   return cardFromFirestore(snap);
 }
 
-// Load all cards for a specific product+section (for board viewer)
+// Load cards for a specific product+section (for board viewer — no auth required)
 export async function loadBoardCards(productId, sectionName) {
-  const snap = await getDocs(collection(db, 'cards'));
+  const q    = query(collection(db, 'cards'), where('productId', '==', productId));
+  const snap = await getDocs(q);
   return snap.docs
     .map(cardFromFirestore)
-    .filter(c => c.productId === productId && c.section === sectionName);
+    .filter(c => c.section === sectionName);
 }
 
 // ============================================================
