@@ -1,0 +1,33 @@
+// ============================================================
+// Firestore Security Rules — Command Centre
+//
+// HOW TO APPLY:
+// 1. Go to Firebase Console → Firestore Database → Rules tab
+// 2. Delete everything there and paste these rules
+// 3. Click "Publish"
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Only the authenticated owner can read/write products, sections, and cards
+    match /products/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /sections/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /cards/{id} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Share links: anyone can READ (needed for viewers with the link)
+    // Only the authenticated owner can CREATE/UPDATE/DELETE share links
+    match /shareLinks/{token} {
+      allow read:  if true;
+      allow write: if request.auth != null;
+    }
+
+  }
+}
