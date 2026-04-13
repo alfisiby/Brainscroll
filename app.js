@@ -239,7 +239,7 @@ function renderSectionRow() {
   const secTabs  = sections.map(s =>
     `<button class="section-tab${active === s.name ? ' active' : ''}" onclick="switchSection('${esc(s.name)}')">
       ${esc(s.name)}
-      <span class="section-delete-btn" onclick="openDeleteSectionModal(event,'${esc(s.name)}')" title="Delete section">×</span>
+      <span class="section-delete-btn" onclick="openDeleteSectionModal(event,'${esc(s.name)}')" title="Delete section">✕</span>
     </button>`
   ).join('');
   const addBtn   = `<button class="btn-add-section" onclick="handleAddSection()">+ Section</button>`;
