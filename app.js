@@ -323,7 +323,7 @@ function renderCard(card, viewerMode = false) {
         return `<div class="card-img-preview" onclick="event.stopPropagation();openLightbox('${src}','${fn}')"><img src="${src}" alt="" loading="lazy"></div>`;
       }
       const isPdf = isPdfUrl(url);
-      return `<div class="card-file-preview ${isPdf ? 'is-pdf' : 'is-file'}"><span class="card-file-icon">${isPdf ? '📄' : '📎'}</span><span class="card-file-name">${fn}</span></div>`;
+      return `<div class="card-file-preview ${isPdf ? 'is-pdf' : 'is-file'}" onclick="event.stopPropagation();window.open('${src}','_blank')" style="cursor:pointer"><span class="card-file-icon">${isPdf ? '📄' : '📎'}</span><span class="card-file-name">${fn}</span></div>`;
     }).join('');
     attachPreview = `<div class="card-attachments-grid">${items}</div>`;
   }
@@ -481,7 +481,7 @@ function viewModalContent(card, standalone = false) {
       const fn  = esc(attachFilename(url));
       return isImageUrl(url)
         ? `<img class="view-img-thumb" src="${src}" alt="${fn}" onclick="openLightbox('${src}','${fn}')">`
-        : `<div class="view-file-chip">${attachEmoji(url)} ${fn}</div>`;
+        : `<div class="view-file-chip" onclick="window.open('${src}','_blank')" style="cursor:pointer">${attachEmoji(url)} ${fn}</div>`;
     }).join('');
     attachHtml = `<div class="view-attachments">
       <div class="view-attach-label">ATTACHMENTS</div>
