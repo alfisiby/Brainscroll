@@ -872,8 +872,10 @@ function attachEmoji(url) {
 // ============================================================
 
 async function uploadToCloudinary(file) {
-  const isPdf     = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-  const endpoint  = isPdf ? 'raw' : 'image';
+  // Use image endpoint only for confirmed image MIME types.
+  // Everything else (PDFs, unknown types) goes to raw — raw files are always publicly accessible.
+  const isImage  = /^image\//i.test(file.type);
+  const endpoint = isImage ? 'image' : 'raw';
 
   const fd = new FormData();
   fd.append('file',          file);
