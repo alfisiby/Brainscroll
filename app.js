@@ -404,7 +404,6 @@ function openNewBriefModal() {
   document.getElementById('brief-save-btn').textContent    = 'Save Brief';
   document.getElementById('brief-title').value             = '';
   document.getElementById('brief-body').value              = '';
-  document.getElementById('brief-attachment').value        = '';
   document.getElementById('brief-priority').value          = 'Medium';
   document.getElementById('brief-status').value            = 'To Do';
   populateSectionDropdown(null);
@@ -421,7 +420,6 @@ function openEditModal(cardId) {
   document.getElementById('brief-save-btn').textContent    = 'Save Changes';
   document.getElementById('brief-title').value             = card.title;
   document.getElementById('brief-body').value              = card.body;
-  document.getElementById('brief-attachment').value        = card.attachmentUrl || '';
   document.getElementById('brief-priority').value          = card.priority;
   document.getElementById('brief-status').value            = card.status;
   populateSectionDropdown(card.section);
