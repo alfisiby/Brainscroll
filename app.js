@@ -872,11 +872,14 @@ function attachEmoji(url) {
 // ============================================================
 
 async function uploadToCloudinary(file) {
+  const isPdf     = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  const endpoint  = isPdf ? 'raw' : 'image';
+
   const fd = new FormData();
-  fd.append('file',         file);
+  fd.append('file',          file);
   fd.append('upload_preset', CLOUDINARY_PRESET);
 
-  const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`, {
+  const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${endpoint}/upload`, {
     method: 'POST',
     body:   fd,
   });
