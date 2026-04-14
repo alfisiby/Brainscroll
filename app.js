@@ -880,7 +880,6 @@ async function uploadToCloudinary(file) {
   const fd = new FormData();
   fd.append('file',          file);
   fd.append('upload_preset', CLOUDINARY_PRESET);
-  fd.append('access_mode',   'public');  // force public delivery (overrides account-level blocks)
 
   const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${endpoint}/upload`, {
     method: 'POST',
