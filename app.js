@@ -454,19 +454,22 @@ function viewModalContent(card, standalone = false) {
   const stsCls = statusClass(card.status);
   const closeBtn = standalone ? '' : `<button class="modal-close" onclick="closeModal()">✕</button>`;
 
+  const allUrls = card.attachmentUrls?.length
+    ? card.attachmentUrls
+    : card.attachmentUrl ? [card.attachmentUrl] : [];
+
   let attachHtml = '';
-  if (card.attachmentUrl) {
-    const isImg = isImageUrl(card.attachmentUrl);
-    const fn    = esc(attachFilename(card.attachmentUrl));
-    const src   = esc(card.attachmentUrl);
+  if (allUrls.length) {
+    const items = allUrls.map(url => {
+      const src = esc(url);
+      const fn  = esc(attachFilename(url));
+      return isImageUrl(url)
+        ? `<img class="view-img-thumb" src="${src}" alt="${fn}" onclick="openLightbox('${src}','${fn}')">`
+        : `<div class="view-file-chip">${attachEmoji(url)} ${fn}</div>`;
+    }).join('');
     attachHtml = `<div class="view-attachments">
       <div class="view-attach-label">ATTACHMENTS</div>
-      <div class="view-file-grid">
-        ${isImg
-          ? `<img class="view-img-thumb" src="${src}" alt="${fn}" onclick="openLightbox('${src}','${fn}')">`
-          : `<div class="view-file-chip" onclick="showToast('File preview coming soon')">${attachEmoji(card.attachmentUrl)} ${fn}</div>`
-        }
-      </div>
+      <div class="view-file-grid">${items}</div>
     </div>`;
   }
 
