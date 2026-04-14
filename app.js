@@ -239,28 +239,44 @@ function renderAll() {
   renderCardGrid();
 }
 
+function pendingCount(productId, sectionName) {
+  return state.cards.filter(c =>
+    c.productId === productId &&
+    c.status !== 'Done' &&
+    (sectionName == null || c.section === sectionName)
+  ).length;
+}
+
+function badge(n) {
+  if (!n) return '';
+  return `<span class="nav-badge">${n > 99 ? '99+' : n}</span>`;
+}
+
 function renderAppRow() {
   document.getElementById('product-buttons').innerHTML = state.products.map(p => {
-    const colour = COLOUR_NAMES[p.colourIndex % COLOUR_NAMES.length];
-    const hex    = COLOUR_HEX[colour];
-    const active = p.id === state.activeProductId;
+    const colour  = COLOUR_NAMES[p.colourIndex % COLOUR_NAMES.length];
+    const hex     = COLOUR_HEX[colour];
+    const active  = p.id === state.activeProductId;
+    const pending = pendingCount(p.id, null);
     return `<button class="product-btn${active ? ' active' : ''}" onclick="switchProduct('${p.id}')">
-      <span class="product-dot" style="background:${hex}"></span>${esc(p.name)}
+      <span class="product-dot" style="background:${hex}"></span>${esc(p.name)}${badge(pending)}
     </button>`;
   }).join('');
 }
 
 function renderSectionRow() {
-  const sections = state.sections[state.activeProductId] || [];
-  const active   = state.activeSectionFilter;
-  const allTab   = `<button class="section-tab${active === 'All' ? ' active' : ''}" onclick="switchSection('All')">All</button>`;
-  const secTabs  = sections.map(s =>
-    `<button class="section-tab${active === s.name ? ' active' : ''}" onclick="switchSection('${esc(s.name)}')">
-      ${esc(s.name)}
+  const sections   = state.sections[state.activeProductId] || [];
+  const active     = state.activeSectionFilter;
+  const allPending = pendingCount(state.activeProductId, null);
+  const allTab     = `<button class="section-tab${active === 'All' ? ' active' : ''}" onclick="switchSection('All')">All${badge(allPending)}</button>`;
+  const secTabs    = sections.map(s => {
+    const n = pendingCount(state.activeProductId, s.name);
+    return `<button class="section-tab${active === s.name ? ' active' : ''}" onclick="switchSection('${esc(s.name)}')">
+      ${esc(s.name)}${badge(n)}
       <span class="section-delete-btn" onclick="openDeleteSectionModal(event,'${esc(s.name)}')" title="Delete section">✕</span>
-    </button>`
-  ).join('');
-  const addBtn   = `<button class="btn-add-section" onclick="handleAddSection()">+ Section</button>`;
+    </button>`;
+  }).join('');
+  const addBtn = `<button class="btn-add-section" onclick="handleAddSection()">+ Section</button>`;
   document.getElementById('section-tabs').innerHTML = allTab + secTabs + addBtn;
 }
 

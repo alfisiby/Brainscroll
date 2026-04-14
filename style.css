@@ -234,6 +234,25 @@ body {
   flex-shrink: 0;
 }
 
+/* ── Pending badge (iOS-style) ── */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-left: 3px;
+}
+
 .btn-add-product {
   width: 28px;
   height: 28px;
