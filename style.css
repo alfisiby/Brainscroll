@@ -487,12 +487,46 @@ body {
 }
 
 /* Attachments row */
-.card-attachments {
+/* ── Card image / file preview ── */
+.card-img-preview {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: var(--surface3);
+}
+.card-img-preview img {
+  width: 100%;
+  max-height: 130px;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.15s;
+}
+.card-img-preview:hover img { opacity: 0.88; }
+
+.card-file-preview {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  flex-shrink: 0;
+}
+.card-file-preview.is-pdf { background: var(--red-dim); border-color: rgba(220,38,38,0.15); }
+.card-file-icon { font-size: 15px; flex-shrink: 0; }
+.card-file-name {
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* legacy chip (kept for old URL-only cards) */
+.card-attachments { display: flex; flex-wrap: wrap; gap: 5px; }
 .attachment-chip {
   display: inline-flex;
   align-items: center;
@@ -508,6 +542,84 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Drop Zone (brief modal) ── */
+.drop-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--surface2);
+  outline: none;
+}
+.drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.drop-zone-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+.drop-zone-idle svg { color: var(--muted2); }
+.drop-browse {
+  color: var(--accent);
+  cursor: pointer;
+  pointer-events: auto;
+  text-decoration: underline;
+}
+.drop-zone-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.drop-preview-icon { flex-shrink: 0; }
+.drop-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.drop-preview-name {
+  font-size: 12px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drop-remove-btn {
+  font-size: 11px;
+  color: var(--red);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.drop-zone-uploading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.upload-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Card Footer */
 .card-footer {

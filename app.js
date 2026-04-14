@@ -16,6 +16,10 @@ import {
 // CONSTANTS
 // ============================================================
 
+// ── Cloudinary ──
+const CLOUDINARY_CLOUD  = 'dx0nrujwa';
+const CLOUDINARY_PRESET = 'ml_default';
+
 const COLOUR_NAMES = ['blue', 'purple', 'orange', 'green', 'pink', 'teal'];
 const COLOUR_HEX   = {
   blue: '#6b9fff', purple: '#a78bfa', orange: '#fb923c',
@@ -288,9 +292,24 @@ function renderCard(card, viewerMode = false) {
   const priCls  = priorityClass(card.priority);
   const tintCls = tintClass(card.section);
   const date    = fmtDate(card.createdAt);
-  const attach  = card.attachmentUrl
-    ? `<div class="card-attachments"><div class="attachment-chip">${attachEmoji(card.attachmentUrl)} ${esc(attachFilename(card.attachmentUrl))}</div></div>`
-    : '';
+  const hasBody = card.body?.trim();
+  const hasUrl  = card.attachmentUrl;
+
+  // Card attachment preview — image thumbnail or file icon
+  let attachPreview = '';
+  if (hasUrl) {
+    const src = esc(card.attachmentUrl);
+    if (isImageUrl(card.attachmentUrl)) {
+      attachPreview = `<div class="card-img-preview" onclick="event.stopPropagation();openLightbox('${src}','${esc(attachFilename(card.attachmentUrl))}')">`
+        + `<img src="${src}" alt="" loading="lazy"></div>`;
+    } else {
+      const isPdf = isPdfUrl(card.attachmentUrl);
+      attachPreview = `<div class="card-file-preview ${isPdf ? 'is-pdf' : 'is-file'}">`
+        + `<span class="card-file-icon">${isPdf ? '📄' : '📎'}</span>`
+        + `<span class="card-file-name">${esc(attachFilename(card.attachmentUrl))}</span></div>`;
+    }
+  }
+
   const actions = viewerMode ? '' : `
     <div class="card-actions" onclick="event.stopPropagation()">
       <button class="card-action-btn edit"   onclick="openEditModal('${card.id}')"  title="Edit">${ICON.edit}</button>
@@ -307,8 +326,8 @@ function renderCard(card, viewerMode = false) {
       <div class="card-title">${esc(card.title)}</div>
       <div class="status-pill ${stsCls}" ${statusClick}>${esc(card.status)}</div>
     </div>
-    <div class="card-body">${esc(card.body)}</div>
-    ${attach}
+    ${hasBody ? `<div class="card-body">${esc(card.body)}</div>` : ''}
+    ${attachPreview}
     <div class="card-footer">
       <div class="team-tag ${tagCls}">${esc(card.section)}</div>
       <div class="priority-badge ${priCls}">${esc(card.priority)}</div>
@@ -388,6 +407,7 @@ function openNewBriefModal() {
   document.getElementById('brief-status').value            = 'To Do';
   populateSectionDropdown(null);
   showModal('brief-modal');
+  initDropZone();
   setTimeout(() => document.getElementById('brief-title').focus(), 80);
 }
 
@@ -404,6 +424,13 @@ function openEditModal(cardId) {
   document.getElementById('brief-status').value            = card.status;
   populateSectionDropdown(card.section);
   showModal('brief-modal');
+  initDropZone();
+  // Pre-populate drop zone if card already has attachment
+  if (card.attachmentUrl) {
+    _dropZoneUrl = card.attachmentUrl;
+    const name = attachFilename(card.attachmentUrl);
+    setDropState('preview', name);
+  }
 }
 
 function populateSectionDropdown(selected) {
@@ -471,6 +498,7 @@ function showModal(modalId) {
 }
 
 function closeModal() {
+  teardownDropZone();
   document.getElementById('modal-overlay').classList.add('hidden');
   document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
   _activeModal        = null;
@@ -802,13 +830,112 @@ function slugify(text) {
 }
 
 function isImageUrl(url) {
-  return /\.(jpe?g|png|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(url);
+  if (!url) return false;
+  // Cloudinary URLs don't always end in extension — check resource_type or common patterns
+  if (/\.(jpe?g|png|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(url)) return true;
+  if (url.includes('cloudinary.com') && !url.includes('/raw/') && !/\.pdf/i.test(url)) return true;
+  return false;
+}
+function isPdfUrl(url) {
+  if (!url) return false;
+  return /\.pdf(\?.*)?$/i.test(url) || (url.includes('cloudinary.com') && url.includes('/raw/'));
 }
 function attachEmoji(url) {
   if (isImageUrl(url))                     return '🖼';
-  if (/\.pdf$/i.test(url))                 return '📄';
+  if (isPdfUrl(url))                       return '📄';
   if (/\.(xlsx?|csv|tsv|ods)$/i.test(url)) return '📊';
   return '📎';
+}
+
+// ============================================================
+// CLOUDINARY UPLOAD
+// ============================================================
+
+async function uploadToCloudinary(file) {
+  const fd = new FormData();
+  fd.append('file',         file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+
+  const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`, {
+    method: 'POST',
+    body:   fd,
+  });
+  if (!res.ok) throw new Error('Upload failed');
+  const data = await res.json();
+  return data.secure_url;
+}
+
+// ── Drop zone state ──
+let _dropZoneUrl = null; // currently staged attachment URL
+
+function initDropZone() {
+  _dropZoneUrl = null;
+  const zone = document.getElementById('drop-zone');
+  if (!zone) return;
+
+  // Reset UI
+  setDropState('idle');
+
+  // Drag over
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleFileUpload(file);
+  });
+
+  // Paste (Ctrl+V) anywhere while modal open
+  zone._pasteHandler = e => {
+    const file = [...(e.clipboardData?.items || [])]
+      .find(i => i.kind === 'file')?.getAsFile();
+    if (file) { e.preventDefault(); handleFileUpload(file); }
+  };
+  document.addEventListener('paste', zone._pasteHandler);
+}
+
+function teardownDropZone() {
+  const zone = document.getElementById('drop-zone');
+  if (zone?._pasteHandler) document.removeEventListener('paste', zone._pasteHandler);
+}
+
+function setDropState(state, name = '') {
+  document.getElementById('drop-idle')?.classList.toggle('hidden',      state !== 'idle');
+  document.getElementById('drop-preview')?.classList.toggle('hidden',   state !== 'preview');
+  document.getElementById('drop-uploading')?.classList.toggle('hidden', state !== 'uploading');
+  if (state === 'preview' && name) {
+    const isPdf = /\.pdf$/i.test(name) || name === 'pdf';
+    document.getElementById('drop-preview-icon').innerHTML = isPdf
+      ? `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`
+      : `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+    document.getElementById('drop-preview-name').textContent = name;
+  }
+}
+
+async function handleFileUpload(file) {
+  setDropState('uploading');
+  try {
+    const url = await uploadToCloudinary(file);
+    _dropZoneUrl = url;
+    document.getElementById('brief-attachment').value = url;
+    setDropState('preview', file.name);
+  } catch (err) {
+    console.error(err);
+    showToast('Upload failed — check your connection');
+    setDropState('idle');
+  }
+}
+
+function handleFileInput(file) {
+  if (file) handleFileUpload(file);
+}
+
+function removeAttachment() {
+  _dropZoneUrl = null;
+  document.getElementById('brief-attachment').value = '';
+  document.getElementById('file-input').value = '';
+  setDropState('idle');
 }
 function attachFilename(url) {
   try { return decodeURIComponent(new URL(url).pathname.split('/').pop()) || url; }
@@ -850,6 +977,7 @@ Object.assign(window, {
   switchProduct, switchSection, handleAddSection, addProduct,
   copyCardLink, shareBoardLink, showToast,
   openDeleteSectionModal, checkDeleteConfirm, confirmDeleteSection,
+  handleFileInput, removeAttachment,
 });
 
 // ============================================================
