@@ -18,7 +18,7 @@ import {
 
 // ── Cloudinary ──
 const CLOUDINARY_CLOUD  = 'dx0nrujwa';
-const CLOUDINARY_PRESET = 'ml_default';
+const CLOUDINARY_PRESET = 'cc_uploads';
 
 const COLOUR_NAMES = ['blue', 'purple', 'orange', 'green', 'pink', 'teal'];
 const COLOUR_HEX   = {
