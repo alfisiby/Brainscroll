@@ -308,7 +308,7 @@ function renderCard(card, viewerMode = false) {
   const priCls  = priorityClass(card.priority);
   const tintCls = tintClass(card.section);
   const date    = fmtDate(card.createdAt);
-  const hasBody = card.body?.trim();
+  const hasBody = card.body && stripHtml(card.body).trim();
   // Normalise to array — support both old single-URL and new multi-URL cards
   const allUrls = card.attachmentUrls?.length
     ? card.attachmentUrls
@@ -344,7 +344,7 @@ function renderCard(card, viewerMode = false) {
       <div class="card-title">${esc(card.title)}</div>
       <div class="status-pill ${stsCls}" ${statusClick}>${esc(card.status)}</div>
     </div>
-    ${hasBody ? `<div class="card-body">${esc(card.body)}</div>` : ''}
+    ${hasBody ? `<div class="card-body">${card.body}</div>` : ''}
     ${attachPreview}
     <div class="card-footer">
       <div class="team-tag ${tagCls}">${esc(card.section)}</div>
@@ -419,12 +419,13 @@ function openNewBriefModal() {
   document.getElementById('brief-modal-title').textContent = 'New Brief';
   document.getElementById('brief-save-btn').textContent    = 'Save Brief';
   document.getElementById('brief-title').value             = '';
-  document.getElementById('brief-body').value              = '';
+  document.getElementById('brief-body').innerHTML           = '';
   document.getElementById('brief-priority').value          = 'Medium';
   document.getElementById('brief-status').value            = 'To Do';
   populateSectionDropdown(null);
   showModal('brief-modal');
   initDropZone();
+  attachRteShortcuts();
   setTimeout(() => document.getElementById('brief-title').focus(), 80);
 }
 
@@ -435,12 +436,13 @@ function openEditModal(cardId) {
   document.getElementById('brief-modal-title').textContent = 'Edit Brief';
   document.getElementById('brief-save-btn').textContent    = 'Save Changes';
   document.getElementById('brief-title').value             = card.title;
-  document.getElementById('brief-body').value              = card.body;
+  document.getElementById('brief-body').innerHTML           = card.body || '';
   document.getElementById('brief-priority').value          = card.priority;
   document.getElementById('brief-status').value            = card.status;
   populateSectionDropdown(card.section);
   showModal('brief-modal');
   initDropZone();
+  attachRteShortcuts();
   // Pre-populate drop zone with existing attachments
   const existingUrls = card.attachmentUrls?.length
     ? card.attachmentUrls
@@ -499,7 +501,7 @@ function viewModalContent(card, standalone = false) {
       <div class="priority-badge ${priCls}">${esc(card.priority)}</div>
       <div class="status-pill ${stsCls}" style="cursor:default">${esc(card.status)}</div>
     </div>
-    <div class="view-body">${esc(card.body)}</div>
+    <div class="view-body">${card.body || ''}</div>
     ${attachHtml}`;
 }
 
@@ -553,7 +555,8 @@ function handleLightboxClick(e) {
 
 async function saveBrief() {
   const title      = document.getElementById('brief-title').value.trim();
-  const body       = document.getElementById('brief-body').value.trim();
+  const bodyEl     = document.getElementById('brief-body');
+  const body       = bodyEl.innerText.trim() ? bodyEl.innerHTML : '';
   const section    = document.getElementById('brief-section').value;
   const priority   = document.getElementById('brief-priority').value;
   const status      = document.getElementById('brief-status').value;
@@ -998,6 +1001,33 @@ function statusClass(s) {
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' });
 }
+// Rich text editor helpers
+function rteCmd(cmd) {
+  // eslint-disable-next-line no-undef
+  document.execCommand(cmd, false, null); // deprecated but universally supported
+  document.getElementById('brief-body')?.focus();
+}
+
+// Strip HTML tags to get plain text (used for card preview hasBody check)
+function stripHtml(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return d.textContent || '';
+}
+
+// Add Ctrl+B/I/U keyboard shortcuts to the RTE on modal open
+function attachRteShortcuts() {
+  const el = document.getElementById('brief-body');
+  if (!el) return;
+  el.addEventListener('keydown', function rteKeys(e) {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'b') { e.preventDefault(); rteCmd('bold'); }
+      if (e.key === 'i') { e.preventDefault(); rteCmd('italic'); }
+      if (e.key === 'u') { e.preventDefault(); rteCmd('underline'); }
+    }
+  });
+}
+
 function esc(str) {
   if (str == null) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -1018,6 +1048,7 @@ Object.assign(window, {
   copyCardLink, shareBoardLink, showToast,
   openDeleteSectionModal, checkDeleteConfirm, confirmDeleteSection,
   handleFileInputMulti, removeAttachmentAt,
+  rteCmd,
 });
 
 // ============================================================
