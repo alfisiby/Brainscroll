@@ -113,8 +113,9 @@ function cardToFirestore(card) {
     body:          card.body,
     priority:      card.priority,
     status:        card.status,
-    attachmentUrl: card.attachmentUrl ?? null,
-    shareToken:    card.shareToken    ?? null,
+    attachmentUrl:  card.attachmentUrl  ?? null,
+    attachmentUrls: card.attachmentUrls ?? null,
+    shareToken:     card.shareToken     ?? null,
     createdAt:     card.createdAt ? new Date(card.createdAt) : serverTimestamp(),
     updatedAt:     serverTimestamp(),
   };
