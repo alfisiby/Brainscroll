@@ -293,21 +293,23 @@ function renderCard(card, viewerMode = false) {
   const tintCls = tintClass(card.section);
   const date    = fmtDate(card.createdAt);
   const hasBody = card.body?.trim();
-  const hasUrl  = card.attachmentUrl;
+  // Normalise to array — support both old single-URL and new multi-URL cards
+  const allUrls = card.attachmentUrls?.length
+    ? card.attachmentUrls
+    : card.attachmentUrl ? [card.attachmentUrl] : [];
 
-  // Card attachment preview — image thumbnail or file icon
   let attachPreview = '';
-  if (hasUrl) {
-    const src = esc(card.attachmentUrl);
-    if (isImageUrl(card.attachmentUrl)) {
-      attachPreview = `<div class="card-img-preview" onclick="event.stopPropagation();openLightbox('${src}','${esc(attachFilename(card.attachmentUrl))}')">`
-        + `<img src="${src}" alt="" loading="lazy"></div>`;
-    } else {
-      const isPdf = isPdfUrl(card.attachmentUrl);
-      attachPreview = `<div class="card-file-preview ${isPdf ? 'is-pdf' : 'is-file'}">`
-        + `<span class="card-file-icon">${isPdf ? '📄' : '📎'}</span>`
-        + `<span class="card-file-name">${esc(attachFilename(card.attachmentUrl))}</span></div>`;
-    }
+  if (allUrls.length) {
+    const items = allUrls.map(url => {
+      const src = esc(url);
+      const fn  = esc(attachFilename(url));
+      if (isImageUrl(url)) {
+        return `<div class="card-img-preview" onclick="event.stopPropagation();openLightbox('${src}','${fn}')"><img src="${src}" alt="" loading="lazy"></div>`;
+      }
+      const isPdf = isPdfUrl(url);
+      return `<div class="card-file-preview ${isPdf ? 'is-pdf' : 'is-file'}"><span class="card-file-icon">${isPdf ? '📄' : '📎'}</span><span class="card-file-name">${fn}</span></div>`;
+    }).join('');
+    attachPreview = `<div class="card-attachments-grid">${items}</div>`;
   }
 
   const actions = viewerMode ? '' : `
@@ -425,12 +427,12 @@ function openEditModal(cardId) {
   populateSectionDropdown(card.section);
   showModal('brief-modal');
   initDropZone();
-  // Pre-populate drop zone if card already has attachment
-  if (card.attachmentUrl) {
-    _dropZoneUrl = card.attachmentUrl;
-    const name = attachFilename(card.attachmentUrl);
-    setDropState('preview', name);
-  }
+  // Pre-populate drop zone with existing attachments
+  const existingUrls = card.attachmentUrls?.length
+    ? card.attachmentUrls
+    : card.attachmentUrl ? [card.attachmentUrl] : [];
+  existingUrls.forEach(url => _stagedUrls.push({ url, name: attachFilename(url) }));
+  if (existingUrls.length) renderDropFilesList();
 }
 
 function populateSectionDropdown(selected) {
@@ -537,27 +539,28 @@ async function saveBrief() {
   const body       = document.getElementById('brief-body').value.trim();
   const section    = document.getElementById('brief-section').value;
   const priority   = document.getElementById('brief-priority').value;
-  const status     = document.getElementById('brief-status').value;
-  const attachment = document.getElementById('brief-attachment').value.trim() || null;
+  const status      = document.getElementById('brief-status').value;
+  const attachUrls  = _stagedUrls.map(f => f.url);
+  // Keep single legacy field for backwards compat; also store array
+  const attachmentUrl  = attachUrls[0] || null;
+  const attachmentUrls = attachUrls.length ? attachUrls : null;
 
   if (!title) { showToast('Add a title first'); return; }
 
   if (state.editingCardId) {
     const idx = state.cards.findIndex(c => c.id === state.editingCardId);
     if (idx === -1) return;
-    const updates = { title, body, section, priority, status, attachmentUrl: attachment };
+    const updates = { title, body, section, priority, status, attachmentUrl, attachmentUrls };
     Object.assign(state.cards[idx], updates);
-    // Write to Firestore (fire and forget — UI already updated)
     updateCardFields(state.editingCardId, updates).catch(console.error);
     showToast('Brief updated');
   } else {
     const newCard = {
       id: 'c' + Date.now(), productId: state.activeProductId,
-      section, title, body, priority, status, attachmentUrl: attachment,
+      section, title, body, priority, status, attachmentUrl, attachmentUrls,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), shareToken: null,
     };
     state.cards.unshift(newCard);
-    // Write to Firestore (fire and forget)
     saveCard(newCard).catch(console.error);
     showToast('Brief saved');
   }
@@ -865,32 +868,28 @@ async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-// ── Drop zone state ──
-let _dropZoneUrl = null; // currently staged attachment URL
+// ── Drop zone — multiple files ──
+let _stagedUrls = []; // array of {url, name}
 
 function initDropZone() {
-  _dropZoneUrl = null;
+  _stagedUrls = [];
   const zone = document.getElementById('drop-zone');
   if (!zone) return;
 
-  // Reset UI
-  setDropState('idle');
+  renderDropFilesList();
 
-  // Drag over
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
   zone.addEventListener('drop', e => {
     e.preventDefault();
     zone.classList.remove('drag-over');
-    const file = e.dataTransfer?.files?.[0];
-    if (file) handleFileUpload(file);
+    const files = [...(e.dataTransfer?.files || [])];
+    if (files.length) handleFilesUpload(files);
   });
 
-  // Paste (Ctrl+V) anywhere while modal open
   zone._pasteHandler = e => {
-    const file = [...(e.clipboardData?.items || [])]
-      .find(i => i.kind === 'file')?.getAsFile();
-    if (file) { e.preventDefault(); handleFileUpload(file); }
+    const file = [...(e.clipboardData?.items || [])].find(i => i.kind === 'file')?.getAsFile();
+    if (file) { e.preventDefault(); handleFilesUpload([file]); }
   };
   document.addEventListener('paste', zone._pasteHandler);
 }
@@ -900,42 +899,58 @@ function teardownDropZone() {
   if (zone?._pasteHandler) document.removeEventListener('paste', zone._pasteHandler);
 }
 
-function setDropState(state, name = '') {
-  document.getElementById('drop-idle')?.classList.toggle('hidden',      state !== 'idle');
-  document.getElementById('drop-preview')?.classList.toggle('hidden',   state !== 'preview');
-  document.getElementById('drop-uploading')?.classList.toggle('hidden', state !== 'uploading');
-  if (state === 'preview' && name) {
-    const isPdf = /\.pdf$/i.test(name) || name === 'pdf';
-    document.getElementById('drop-preview-icon').innerHTML = isPdf
-      ? `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`
-      : `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
-    document.getElementById('drop-preview-name').textContent = name;
+function renderDropFilesList() {
+  const list = document.getElementById('drop-files-list');
+  if (!list) return;
+  const idle = document.getElementById('drop-idle');
+  if (_stagedUrls.length === 0) {
+    list.innerHTML = '';
+    idle?.classList.remove('hidden');
+    return;
   }
+  idle?.classList.add('hidden');
+  list.innerHTML = _stagedUrls.map((f, i) => {
+    const isPdf = isPdfUrl(f.url);
+    const isImg = isImageUrl(f.url);
+    const icon  = isImg ? '🖼' : isPdf ? '📄' : '📎';
+    return `<div class="drop-file-item">
+      <span class="drop-file-item-icon">${icon}</span>
+      <span class="drop-file-item-name">${esc(f.name)}</span>
+      <button class="drop-remove-btn" onclick="removeAttachmentAt(${i})">✕</button>
+    </div>`;
+  }).join('') + `<label class="drop-add-more" for="file-input">+ Add more</label>`;
 }
 
-async function handleFileUpload(file) {
-  setDropState('uploading');
-  try {
-    const url = await uploadToCloudinary(file);
-    _dropZoneUrl = url;
-    document.getElementById('brief-attachment').value = url;
-    setDropState('preview', file.name);
-  } catch (err) {
-    console.error(err);
-    showToast('Upload failed — check your connection');
-    setDropState('idle');
+async function handleFilesUpload(files) {
+  const uploading = document.getElementById('drop-uploading');
+  const label     = document.getElementById('drop-uploading-label');
+  uploading?.classList.remove('hidden');
+  document.getElementById('drop-idle')?.classList.add('hidden');
+
+  for (let i = 0; i < files.length; i++) {
+    if (label) label.textContent = files.length > 1 ? `Uploading ${i+1}/${files.length}…` : 'Uploading…';
+    try {
+      const url = await uploadToCloudinary(files[i]);
+      _stagedUrls.push({ url, name: files[i].name || 'screenshot.png' });
+    } catch (err) {
+      console.error(err);
+      showToast(`Failed to upload ${files[i].name || 'file'}`);
+    }
   }
-}
 
-function handleFileInput(file) {
-  if (file) handleFileUpload(file);
-}
-
-function removeAttachment() {
-  _dropZoneUrl = null;
-  document.getElementById('brief-attachment').value = '';
+  uploading?.classList.add('hidden');
   document.getElementById('file-input').value = '';
-  setDropState('idle');
+  renderDropFilesList();
+}
+
+function handleFileInputMulti(fileList) {
+  const files = [...(fileList || [])];
+  if (files.length) handleFilesUpload(files);
+}
+
+function removeAttachmentAt(index) {
+  _stagedUrls.splice(index, 1);
+  renderDropFilesList();
 }
 function attachFilename(url) {
   try { return decodeURIComponent(new URL(url).pathname.split('/').pop()) || url; }
@@ -977,7 +992,7 @@ Object.assign(window, {
   switchProduct, switchSection, handleAddSection, addProduct,
   copyCardLink, shareBoardLink, showToast,
   openDeleteSectionModal, checkDeleteConfirm, confirmDeleteSection,
-  handleFileInput, removeAttachment,
+  handleFileInputMulti, removeAttachmentAt,
 });
 
 // ============================================================

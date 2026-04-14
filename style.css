@@ -452,6 +452,8 @@ body {
   line-height: 1.45;
   flex: 1;
   min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Status Pill */
@@ -484,21 +486,30 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Attachments row */
-/* ── Card image / file preview ── */
+/* ── Card attachment previews ── */
+.card-attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 5px;
+  flex-shrink: 0;
+}
+
 .card-img-preview {
-  width: 100%;
-  border-radius: 8px;
+  border-radius: 7px;
   overflow: hidden;
   cursor: pointer;
   flex-shrink: 0;
   background: var(--surface3);
+  height: 72px;
 }
 .card-img-preview img {
   width: 100%;
-  max-height: 130px;
+  height: 100%;
   object-fit: cover;
   display: block;
   transition: opacity 0.15s;
@@ -594,14 +605,46 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.drop-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.drop-file-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 12px;
+}
+.drop-file-item-icon { font-size: 14px; flex-shrink: 0; }
+.drop-file-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
 .drop-remove-btn {
   font-size: 11px;
-  color: var(--red);
+  color: var(--muted2);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
-  text-align: left;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.drop-remove-btn:hover { color: var(--red); }
+.drop-add-more {
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 2px;
 }
 .drop-zone-uploading {
   display: flex;
