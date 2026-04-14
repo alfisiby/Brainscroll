@@ -885,8 +885,11 @@ async function uploadToCloudinary(file) {
     method: 'POST',
     body:   fd,
   });
-  if (!res.ok) throw new Error('Upload failed');
   const data = await res.json();
+  if (!res.ok) {
+    console.error('Cloudinary error:', JSON.stringify(data));
+    throw new Error('Upload failed');
+  }
   return data.secure_url;
 }
 
