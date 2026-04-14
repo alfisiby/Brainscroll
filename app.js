@@ -185,14 +185,28 @@ async function seedFirestore() {
 // ROUTING
 // ============================================================
 
-function handleRoute() {
+function parseHash() {
+  // Hash format: #<token>/<section-slug>          → board
+  //              #<token>/<section-slug>/<card-slug> → card
+  // Legacy query param support: ?s=token or ?c=token
+  const hash = window.location.hash.slice(1); // strip leading #
+  if (hash) {
+    const parts = hash.split('/').filter(Boolean);
+    if (parts.length >= 2) return { token: parts[0], type: parts.length >= 3 ? 'card' : 'board' };
+  }
+  // Legacy fallback
   const params = new URLSearchParams(window.location.search);
-  const sToken = params.get('s');
-  const cToken = params.get('c');
+  if (params.get('s')) return { token: params.get('s'), type: 'board' };
+  if (params.get('c')) return { token: params.get('c'), type: 'card' };
+  return null;
+}
+
+function handleRoute() {
+  const route = parseHash();
 
   // Share link routes — no auth required
-  if (sToken) { showBoardViewer(sToken); return; }
-  if (cToken) { showCardViewer(cToken);  return; }
+  if (route?.type === 'board') { showBoardViewer(route.token); return; }
+  if (route?.type === 'card')  { showCardViewer(route.token);  return; }
 
   // Dashboard route — listen for Firebase auth state
   showScreen('loading');
@@ -272,6 +286,7 @@ function renderCard(card, viewerMode = false) {
   const stsCls  = statusClass(card.status);
   const tagCls  = tagClass(card.section);
   const priCls  = priorityClass(card.priority);
+  const tintCls = tintClass(card.section);
   const date    = fmtDate(card.createdAt);
   const attach  = card.attachmentUrl
     ? `<div class="card-attachments"><div class="attachment-chip">${attachEmoji(card.attachmentUrl)} ${esc(attachFilename(card.attachmentUrl))}</div></div>`
@@ -287,7 +302,7 @@ function renderCard(card, viewerMode = false) {
     : `onclick="cycleStatus(event,'${card.id}')"`;
   const cardClick = `onclick="openViewModal('${card.id}')"`;
 
-  return `<div class="card${card.status === 'Done' ? ' done' : ''}" data-id="${card.id}" ${cardClick}>
+  return `<div class="card${card.status === 'Done' ? ' done' : ''}${tintCls ? ' '+tintCls : ''}" data-id="${card.id}" ${cardClick}>
     <div class="card-header">
       <div class="card-title">${esc(card.title)}</div>
       <div class="status-pill ${stsCls}" ${statusClick}>${esc(card.status)}</div>
@@ -668,7 +683,9 @@ async function copyCardLink(cardId) {
     await updateCardToken(cardId, card.shareToken);
   }
 
-  const url = `${location.origin}${location.pathname}?c=${card.shareToken}`;
+  const sectionSlug = slugify(card.section);
+  const cardSlug    = slugify(card.title);
+  const url = `${location.origin}${location.pathname}#${card.shareToken}/${sectionSlug}/${cardSlug}`;
   copyToClipboard(url, 'Link copied — share with your team');
 }
 
@@ -691,7 +708,8 @@ async function shareBoardLink() {
     await updateSectionToken(section.id, section.shareToken);
   }
 
-  const url = `${location.origin}${location.pathname}?s=${section.shareToken}`;
+  const sectionSlug = slugify(state.activeSectionFilter);
+  const url = `${location.origin}${location.pathname}#${section.shareToken}/${sectionSlug}`;
   copyToClipboard(url, 'Board link copied — share with your team');
 }
 
@@ -775,6 +793,14 @@ function genToken(len = 12) {
   return t;
 }
 
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function isImageUrl(url) {
   return /\.(jpe?g|png|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(url);
 }
@@ -791,6 +817,10 @@ function attachFilename(url) {
 function tagClass(s) {
   return ({Marketing:'tag-marketing',SEO:'tag-seo',Dev:'tag-dev',Content:'tag-content',
            Ads:'tag-ads',Design:'tag-design',Product:'tag-product'})[s] || 'tag-default';
+}
+function tintClass(s) {
+  return ({Marketing:'tint-marketing',SEO:'tint-seo',Dev:'tint-dev',Content:'tint-content',
+           Ads:'tint-ads',Design:'tint-design',Product:'tint-product'})[s] || '';
 }
 function priorityClass(p) {
   return ({High:'priority-high',Medium:'priority-medium',Low:'priority-low'})[p] || 'priority-low';
